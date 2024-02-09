@@ -1,1 +1,1 @@
-Removed ipynb and switched to python files and code is better displayed.
+Removed ipynb and switched to python files as the code is better displayed in this format.
