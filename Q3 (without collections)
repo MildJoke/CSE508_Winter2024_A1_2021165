@@ -1,0 +1,64 @@
+import os
+import pickle
+from nltk.tokenize import word_tokenize
+
+
+def create_positional_index(folder_path):
+    positional_index = {}
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.txt'):
+            file_path = os.path.join(folder_path, filename)
+            with open(file_path, 'r', encoding='utf-8') as file:
+                words = word_tokenize(file.read().lower())
+                words = [word for word in words if word.isalpha() and word not in stop_words]
+                for position, word in enumerate(words):
+                    if word not in positional_index:
+                        positional_index[word] = {}
+                    if filename not in positional_index[word]:
+                        positional_index[word][filename] = []
+                    positional_index[word][filename].append(position)
+    return positional_index
+
+def save_positional_index(index, file_name='positional_index.pkl'):
+    with open(file_name, 'wb') as outfile:
+        pickle.dump(index, outfile)
+
+def load_positional_index(file_name='positional_index.pkl'):
+    with open(file_name, 'rb') as infile:
+        return pickle.load(infile)
+
+def phrase_query_search(index, query):
+    query_words = word_tokenize(query.lower())
+    if not query_words:
+        return []
+    if len(query_words) == 1:
+        return list(index.get(query_words[0], {}).keys())
+    
+    docs = set(index.get(query_words[0], {}).keys())
+    for i, word in enumerate(query_words[1:], 1):
+        next_docs = set(index.get(word, {}).keys())
+        docs = set([doc for doc in next_docs if any(pos - i in index.get(query_words[0], {}).get(doc, []) for pos in index.get(word, {}).get(doc, []))])
+    return list(docs)
+
+def main():
+    folder_path = '/Users/mj/Desktop/Work/Sem6/IR/IRAssignment/newtextfiles'
+    positional_index = create_positional_index(folder_path)
+    save_positional_index(positional_index)
+    loaded_index = load_positional_index()
+    
+    N = int(input("Enter number of phrase queries: "))
+    for i in range(N):
+        query = input(f"Enter phrase query {i+1}: ")
+        preprocessed_query = preprocess_text(query)
+
+        results = phrase_query_search(loaded_index, preprocessed_query)
+        print(f"Query {i+1}: '{preprocessed_query}'")
+        print(f"Number of documents retrieved: {len(results)}")
+        if results:
+            print(f"Documents containing the phrase: {', '.join(results)}")
+        else:
+            print("No documents contain the given phrase.")
+
+
+if __name__ == "__main__":
+    main()
